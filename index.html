@@ -28,7 +28,12 @@
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('2d');
     
+    let count =0;
     function onResults(results) {
+      if(count==0){
+        console.log(results);
+      }
+      count+=1;
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(
@@ -56,8 +61,9 @@
       // return `https://unpkg.com/@mediapipe/face_mesh@0.4.1657299874/${file}`;
     }});
     faceMesh.setOptions({
+      enableFaceGeometry: true,
       maxNumFaces: 1,
-      refineLandmarks: true,
+      refineLandmarks: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
