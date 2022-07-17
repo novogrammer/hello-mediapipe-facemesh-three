@@ -3,37 +3,96 @@
 <head>
   <meta charset="utf-8">
   <!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script> -->
-  <!-- https://unpkg.com/browse/@mediapipe/camera_utils@0.3.1640029074/ -->
+  <!-- https://unpkg.com/browse/@mediapipe/camera_utils/ -->
   <script src="https://unpkg.com/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script> -->
-  <!-- https://unpkg.com/browse/@mediapipe/control_utils@0.6.1629159505/ -->
+  <!-- https://unpkg.com/browse/@mediapipe/control_utils/ -->
   <script src="https://unpkg.com/@mediapipe/control_utils@0.6.1629159505/control_utils.js" crossorigin="anonymous"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script> -->
-  <!-- see https://unpkg.com/browse/@mediapipe/drawing_utils@0.3.1620248257/ -->
+  <!-- see https://unpkg.com/browse/@mediapipe/drawing_utils/ -->
   <script src="https://unpkg.com/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script> -->
-  <!-- see https://unpkg.com/browse/@mediapipe/face_mesh@0.4.1633559619/ -->
+  <!-- see https://unpkg.com/browse/@mediapipe/face_mesh/ -->
   <script src="https://unpkg.com/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
   <!-- <script src="https://unpkg.com/@mediapipe/face_mesh@0.4.1657299874/face_mesh.js" crossorigin="anonymous"></script> -->
+  <script src="https://unpkg.com/three@0.139.2/build/three.min.js"></script>
 </head>
 
 <body>
   <div class="container">
     <video class="input_video"></video>
     <canvas class="output_canvas" width="1280px" height="720px"></canvas>
+    <canvas class="three_canvas" width="1280px" height="720px"></canvas>
   </div>
   <script type="module">
     const videoElement = document.getElementsByClassName('input_video')[0];
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('2d');
+
+    const three={};
+    {
+      const renderer = new THREE.WebGLRenderer({
+        canvas:document.querySelector(".three_canvas"),
+      });
+      const WIDTH=1280;
+      const HEIGHT=720;
+      renderer.setSize(WIDTH,HEIGHT);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
+      camera.position.z = 50;
+
+      const mesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({
+        color:0xffffff,
+      }));
+      scene.add(mesh);
+
+      Object.assign(three,{
+        renderer,
+        scene,
+        camera,
+        mesh,
+      })
+
+    }
     
-    let count =0;
-    function onResults(results) {
-      if(count==0){
-        console.log(results);
+
+
+    const asMesh3D=(mesh)=>{
+      return {
+        vertexBufferList:mesh.getVertexBufferList(),
+        indexBufferList:mesh.getIndexBufferList(),
       }
-      count+=1;
+    };
+    const asMatrixData=(matrixData)=>{
+      return {
+        cols:matrixData.h[0],
+        rows:matrixData.h[1],
+        packedData:matrixData.h[2],
+      }
+    }
+    function onResults(results) {
+      // console.log(results);
+      // console.log(results.image.toDataURL());
+
+      const mapped=results.multiFaceGeometry.map((faceGeometry)=>{
+        return {
+          mesh:asMesh3D(faceGeometry.g[1]),
+          poseTransformMatrix:asMatrixData(faceGeometry.g[2]),
+        }
+      });
+      // console.log(mapped);
+
+      {
+        const {renderer,scene,camera,mesh}=three;
+        const {geometry}=mesh;
+        geometry.setAttribute("position",new THREE.Float32BufferAttribute(mapped[0].mesh.vertexBufferList,3));
+        geometry.setAttribute("index",new THREE.Uint32BufferAttribute(mapped[0].mesh.indexBufferList,3));
+
+        renderer.render(scene,camera);
+      }
+
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(
