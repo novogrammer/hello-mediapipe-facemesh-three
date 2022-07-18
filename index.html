@@ -32,12 +32,12 @@
     const canvasCtx = canvasElement.getContext('2d');
 
     const three={};
+    const WIDTH=1280;
+    const HEIGHT=720;
     {
       const renderer = new THREE.WebGLRenderer({
         canvas:document.querySelector(".three_canvas"),
       });
-      const WIDTH=1280;
-      const HEIGHT=720;
       renderer.setSize(WIDTH,HEIGHT);
       renderer.outputEncoding = THREE.sRGBEncoding;
       const scene = new THREE.Scene();
@@ -133,7 +133,7 @@
             // console.log(window.faceIndexList);
             // geometry.setAttribute("index",new THREE.Uint32BufferAttribute(window.faceIndexList,1));
             geometry.setIndex(window.faceIndexList);
-            const positionList=landmarks.map((position)=>[position.x-0.5,(position.y-0.5)*-1,position.z]).flat();
+            const positionList=landmarks.map((position)=>[(position.x-0.5)*WIDTH / HEIGHT,(position.y-0.5)*-1,position.z]).flat();
             // console.log(positionList);
             // debugger;
             geometry.setAttribute("position",new THREE.Float32BufferAttribute(positionList,3));
